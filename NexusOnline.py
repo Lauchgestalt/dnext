@@ -7,10 +7,12 @@ import asyncio
 from discord.ext import commands
 from discord.ext.commands import Bot
 import requests
+import websocket
 
-token = '<PASTE TOKEN HERE>'
+token = '<PASTE BOT TOKEN HERE>'
 
-bot = commands.Bot(command_prefix='b!')
+bot = commands.Bot(command_prefix='n!')
+#channel = discord.utils.get(bot.guilds.channels, name="Channel_name_here", type="ChannelType.voice") 
 
 
 @bot.event
@@ -25,9 +27,9 @@ async def on_message(message):
             while True:
                 results = []
                 message = ''
-                results.append(checkStatus('eu.duelingnexus.com', '80'))
-                results.append(checkStatus('na.duelingnexus.com', '80'))
-                results.append(checkStatus('duelingnexus.com', '80'))
+                results.append(checkStatus('eu'))
+                results.append(checkStatus('na'))
+                results.append(checkLobby('duelingnexus.com', '80'))
 
                 if results == oldresults:
                     print('Status up to date')
@@ -48,7 +50,10 @@ async def on_message(message):
                         message += '**Lobby Server:** :green_circle: Online'
                     else:
                         message += '**Lobby Server:** :red_circle: Offline'
-                
+                    if(results[0] != results[1]):
+                        allOnline = False
+                    else:
+                        allOnline = True
                     await channel.send(message)
                     print('Sent message')
                     await asyncio.sleep(10)
@@ -59,6 +64,8 @@ async def on_message(message):
                     url = f'https://discord.com/api/v6/channels/{channelid}/messages/{msgid}/crosspost'
                     print(url)
                     print(requests.post(url, headers=obj))
+                    if(allOnline == False):
+                        await channel.send('To temporarily switch game servers, while one of them is offline, use the server settings at the bottom of the Duel Zone!', file=discord.File('status.png'))
                 await asyncio.sleep(600)
         else:
             return
@@ -69,17 +76,27 @@ async def on_ready():
     print("Errors: ")
     return
 
-def checkStatus(host, port):
-        args = socket.getaddrinfo(host, port, socket.AF_INET, socket.SOCK_STREAM)
-        for family, socktype, proto, canonname, sockaddr in args:
-            s = socket.socket(family, socktype, proto)
-            try:
-                s.connect(sockaddr)
-            except socket.error:
-                return False
-            else:
-                s.close()
-                return True
+def checkStatus(server):
+    try:
+        ws = websocket.WebSocket()
+        ws.connect(f"wss://{server}.duelingnexus.com/gameserver/")
+        status = ws.connected
+        ws.close()
+    except: 
+        status = False
+    return status
+
+def checkLobby(host, port):
+    args = socket.getaddrinfo(host, port, socket.AF_INET, socket.SOCK_STREAM)
+    for family, socktype, proto, canonname, sockaddr in args:
+        s = socket.socket(family, socktype, proto)
+        try:
+            s.connect(sockaddr)
+        except socket.error:
+            return False
+        else:
+            s.close()
+            return True
 
 
 bot.run(token)
