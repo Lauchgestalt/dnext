@@ -26,6 +26,4 @@
     video.style.zIndex = '-1';
     let DOM = document.documentElement;
     DOM.insertBefore(video, DOM.firstChild);
-
-    // Your code here...
 })();
